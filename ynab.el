@@ -9,7 +9,7 @@
 ;; Version: 0.0.1
 ;; Keywords: YNAB
 ;; Homepage: https://github.com/janders223/ynab.el
-;; Package-Requires: ((emacs 26.3) (cl-lib "0.5"))
+;; Package-Requires: ((emacs "26.3") (cl-lib "0.5"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
