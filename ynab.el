@@ -93,7 +93,7 @@ This is set to `last-used' as per the documentation and will be the last used bu
                                 (ynab-transaction-category transaction)
                                 (format "$%.2f" (/ (ynab-transaction-amount transaction) 1000.00))
                                 (ynab-transaction-cleared transaction))))
-                (ynab--fetch-transactions-for-budget ynab--default-budget))))
+                (ynab--fetch-transactions-for-budget ynab-default-budget))))
 
 ;;;###autoload
 (defun ynab ()
