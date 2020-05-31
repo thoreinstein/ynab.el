@@ -1,13 +1,13 @@
-;;; ynab.el --- YNAB... in Emacs! -*- lexical-binding: t; -*-
+;;; ynab.el --- Major mode for YNAB (you need a budget) -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2020 Jim Anders
 ;;
-;; Author: Jim Anders <http://github.com/janders223>
+;; Author: Jim Anders <https://github.com/janders223>
 ;; Maintainer: Jim Anders <jimanders223@gmail.com>
 ;; Created: May 20, 2020
 ;; Modified: May 20, 2020
-;; Version: 0.0.1
-;; Keywords: YNAB
+;; Version: 0.0.2
+;; Keywords: YNAB budget convenience
 ;; Homepage: https://github.com/janders223/ynab.el
 ;; Package-Requires: ((emacs "26.3") (cl-lib "0.5") (ts "0.2"))
 ;;
@@ -29,7 +29,7 @@
 ;;
 ;;; Commentary:
 ;;
-;; Major mode for working with your YNAB data
+;; Major mode for working with your YNAB (you need a budget) data
 ;;
 ;;; Code:
 
