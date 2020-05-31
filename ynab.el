@@ -9,7 +9,7 @@
 ;; Version: 0.0.1
 ;; Keywords: YNAB
 ;; Homepage: https://github.com/janders223/ynab.el
-;; Package-Requires: ((emacs "26.3") (cl-lib "0.5"))
+;; Package-Requires: ((emacs "26.3") (cl-lib "0.5") (ts "0.2"))
 ;;
 ;; This file is not part of GNU Emacs.
 ;;
@@ -34,6 +34,7 @@
 ;;; Code:
 
 (require 'json)
+(require 'ts)
 
 (defgroup ynab nil
   "Use YNAB from the comfort of Emacs."
@@ -60,8 +61,7 @@ This is set to `last-used' as per the documentation and will be the last used bu
 (defun ynab--fetch-transactions-for-budget (budget)
   "Fetch the list of transactions for the specified BUDGET."
   (let ((url-request-extra-headers (list (cons "Authorization" (format "Bearer %s" ynab-personal-token))))
-        (calc-date-format "XYYYY-MM-DD")
-        (date-since (substring (calc-eval "(now() - 30") 1 -1))
+        (date-since (ts-format "%Y-%m-%d" (ts-dec 'day 30 (ts-now))))
         (json-object-type 'plist))
   (with-current-buffer
    (url-retrieve-synchronously
