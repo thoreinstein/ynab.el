@@ -58,15 +58,19 @@ This is set to `last-used' as per the documentation and will be the last used bu
   "A YNAB transaction."
   id date payee category amount cleared)
 
-(defun ynab--fetch-transactions-for-budget (budget)
-  "Fetch the list of transactions for the specified BUDGET."
+(defun ynab--fetch-transactions-for-budget (budget &optional date)
+  "Fetch the list of transactions for the specified BUDGET and optional DATE."
   (let ((url-request-extra-headers (list (cons "Authorization" (format "Bearer %s" ynab-personal-token))))
-        (date-since (ts-format "%Y-%m-%d" (ts-dec 'day 30 (ts-now))))
+        (date-since (if date
+                        date
+                        (ts-format "%Y-%m-%d" (ts-dec 'day 30 (ts-now)))))
         (json-object-type 'plist))
+    (message "Fetching transactions from YNAB")
   (with-current-buffer
    (url-retrieve-synchronously
     (format "%s/budgets/%s/transactions?since_date=%s" ynab--api-url budget date-since))
    (let ((result (json-read-object)))
+     (message (format "Fetched %d transactions from YNAB" (length (plist-get (plist-get result :data) :transactions))))
      (cl-loop for transaction across (plist-get (plist-get result :data) :transactions) collect
                   (ynab-transaction--create
                    :id (plist-get transaction :id)
@@ -76,15 +80,22 @@ This is set to `last-used' as per the documentation and will be the last used bu
                    :amount (plist-get transaction :amount)
                    :cleared (plist-get transaction :cleared)))))))
 
+(defvar ynab-transactions-mode-map nil "Keymap for `ynab-transactions-mode'.")
+
+(progn
+  (setq ynab-transactions-mode-map (make-sparse-keymap))
+  (define-key ynab-transactions-mode-map (kbd "C-c C-d") 'ynab-set-transaction-since-date))
+
 (define-derived-mode ynab-transactions-mode tabulated-list-mode "YNAB Transactions"
   "Major mode for interacting with YNAB transactions."
   :group 'ynab
+  ;; (use-local-map ynab-transactions-mode-map)
   (setq tabulated-list-format
         [("Date" 15 t) ("Payee" 40 nil) ("Category" 40 nil) ("Amount" 15 nil) ("Cleared" 10 nil)]
         tabulated-list-sort-key (cons "Date" t)))
 
-(defun ynab--refresh-transaction-list ()
-  "Refresh the transactions."
+(defun ynab--refresh-transaction-list (&optional date)
+  "Refresh the transactions, optionally setting the since DATE."
   (setq tabulated-list-entries
         (mapcar (lambda (transaction)
                   (list (ynab-transaction-id transaction)
@@ -93,7 +104,18 @@ This is set to `last-used' as per the documentation and will be the last used bu
                                 (ynab-transaction-category transaction)
                                 (format "$%.2f" (/ (ynab-transaction-amount transaction) 1000.00))
                                 (ynab-transaction-cleared transaction))))
-                (ynab--fetch-transactions-for-budget ynab-default-budget))))
+                (if date
+                    (ynab--fetch-transactions-for-budget ynab-default-budget date)
+                    (ynab--fetch-transactions-for-budget ynab-default-budget)))))
+
+(defun ynab-set-transaction-since-date (date)
+  "Set the DATE from which to pull transactions.
+
+When you first load ynab this is defaulted to 30 days ago.
+The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen date."
+  (interactive "sEnter the desired date: ")
+  (ynab--refresh-transaction-list date)
+  (tabulated-list-print))
 
 ;;;###autoload
 (defun ynab ()
