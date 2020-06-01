@@ -27,7 +27,7 @@ You will need a personal access token in order to be able to interact with your 
 
 ## Roadmap
 
-- [ ] Loading transactions within date range
+- [x] Loading transactions within date range
 - [ ] Creating new transactions
 - [ ] Edit transactions
 - [ ] Toggle cleared status
