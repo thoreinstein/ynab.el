@@ -6,15 +6,6 @@ _Please Note_ This package is in it's infancy and is a side project to make my f
 
 ## Installation
 
-<kbd>M-x</kbd> `package-install` <kbd>RET</kbd> `ynab` <kbd>RET</kbd>
-
-or using `use-package`
-
-```emacs-lisp
-(use-package ynab
-    :ensure t)
-```
-
 You will need a personal access token in order to be able to interact with your data. `ynab` does not support authentication, nor does it ever store any of your financial data. Visit the [developer](https://app.youneedabudget.com/settings/developer) section of the YNAB settings and generate a new personal access token. Set the token in code with.
 
 ```emacs-lisp
