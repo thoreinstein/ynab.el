@@ -1,6 +1,6 @@
 # ynab
 
-`ynab` is a package that provides a major mode for interacting with your [YNAB](https://youneedabudget.com), also known as You Need a Budget, from the comfort of emacs.
+`ynab` is a package that provides a major mode for interacting with your [YNAB](https://youneedabudget.com), also known as You Need a Budget, data from the comfort of emacs.
 
 _Please Note_ This package is in it's infancy and is a side project to make my financial life slightly easier. I have no intentions of recreating the YNAB interface, nor a large part of it's functionality.
 
