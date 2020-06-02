@@ -33,69 +33,16 @@
 ;;
 ;;; Code:
 
+(require 'cl-lib)
 (require 'json)
 (require 'ts)
+
+(require 'ynab-api)
 
 (defgroup ynab nil
   "Use YNAB from the comfort of Emacs."
   :group 'convenience)
 
-(defcustom ynab-personal-token ""
-  "Your personal access token for YNAB."
-  :group 'ynab
-  :type 'string)
-
-(defconst ynab--api-url "https://api.youneedabudget.com/v1/")
-(defconst last-used (ynab-budget--create
-                     :id "last-used"
-                     :name "Last Used"))
-
-(defvar ynab--chosen-budget last-used
-  "The budget that will be used when interacting with YNAB.")
-
-(cl-defstruct (ynab-transaction (:constructor ynab-transaction--create))
-  "A YNAB transaction."
-  id date payee category amount cleared)
-
-(cl-defstruct (ynab-budget (:constructor ynab-budget--create))
-  "A YNAB Budget."
-  id name)
-
-(defun ynab--fetch-budget-list ()
-  "Fetch and parse the users budget list."
-  (let ((url-request-extra-headers (list (cons "Authorization" (format "Bearer %s" ynab-personal-token))))
-        (json-object-type 'plist))
-    (message "Fetching budgets from YNAB")
-    (with-current-buffer
-        (url-retrieve-synchronously
-         (format "%s/budgets" ynab--api-url))
-      (let ((result (json-read-object)))
-        (cl-loop for budget across (plist-get (plist-get result :data) :budgets) collect
-                 (ynab-budget--create
-                  :id (plist-get budget :id)
-                  :name (plist-get budget :name)))))))
-
-(defun ynab--fetch-transactions-for-budget (budget &optional date)
-  "Fetch the list of transactions for the specified BUDGET and optional DATE."
-  (let ((url-request-extra-headers (list (cons "Authorization" (format "Bearer %s" ynab-personal-token))))
-        (date-since (if date
-                        date
-                        (ts-format "%Y-%m-%d" (ts-dec 'day 30 (ts-now)))))
-        (json-object-type 'plist))
-    (message "Fetching transactions from YNAB for budget::%s" (ynab-budget-name ynab--chosen-budget))
-  (with-current-buffer
-   (url-retrieve-synchronously
-    (format "%s/budgets/%s/transactions?since_date=%s" ynab--api-url (ynab-budget-id budget) date-since))
-   (let ((result (json-read-object)))
-     (message (format "Fetched %d transactions from YNAB" (length (plist-get (plist-get result :data) :transactions))))
-     (cl-loop for transaction across (plist-get (plist-get result :data) :transactions) collect
-                  (ynab-transaction--create
-                   :id (plist-get transaction :id)
-                   :date (plist-get transaction :date)
-                   :payee (plist-get transaction :payee_name)
-                   :category (plist-get transaction :category_name)
-                   :amount (plist-get transaction :amount)
-                   :cleared (plist-get transaction :cleared)))))))
 
 (defvar ynab-transactions-mode-map nil "Keymap for `ynab-transactions-mode'.")
 
@@ -135,7 +82,6 @@ The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen 
   (ynab--refresh-transaction-list ynab--chosen-budget date)
   (tabulated-list-print))
 
-(setq ynab--chosen-budget last-used)
 (defun ynab-choose-budget ()
   "Interactively choose which budget to view."
   (interactive)
@@ -147,6 +93,29 @@ The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen 
                                          collect budget)))
     (ynab--refresh-transaction-list ynab--chosen-budget)
     (tabulated-list-print)))
+
+(defun ynab-add-transaction ()
+  "Add a new transaction to your last used YNAB budget."
+  (interactive)
+  (let* ((payees (ynab--fetch-payee-list-for-budget ynab--chosen-budget))
+         (categories (ynab--fetch-category-list-for-budget ynab--chosen-budget))
+         (payee-names (mapcar 'ynab-payee-name payees))
+         (category-names (mapcar 'ynab-category-name categories))
+         (chosen-date (read-string "Date [YYYY-MM-DD]: "))
+         (chosen-payee (ido-completing-read "Payee: " payee-names))
+         (chosen-category (ido-completing-read "Category: " category-names))
+         (memo (read-string "Memo: "))
+         (outflow (read-string "Outflow [leave blank if Inflow]: "))
+         (inflow (read-string "Inflow [leave blank if Outflow]: "))
+
+         ;;; TODO These active record type accessors `find-thing-by-slot' will need to be implemented
+         ;;; once caching is in place. In the mean time this is here to hold the intended interaction.
+         ;; (new-transaction (make-ynab-transaction
+         ;;                   :date chosen-date
+         ;;                   :payee (find-payee-by-name chosen-payee)
+         ;;                   :category (find-category-by-name chosen-category)
+         ;;                   :memo memo)
+         )))
 
 ;;;###autoload
 (defun ynab ()
