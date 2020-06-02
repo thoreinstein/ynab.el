@@ -135,7 +135,6 @@ The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen 
   (ynab--refresh-transaction-list ynab--chosen-budget date)
   (tabulated-list-print))
 
-(setq ynab--chosen-budget last-used)
 (defun ynab-choose-budget ()
   "Interactively choose which budget to view."
   (interactive)
