@@ -45,18 +45,35 @@
   :group 'ynab
   :type 'string)
 
-(defcustom ynab-default-budget "last-used"
-  "The default budget to pull up.
-
-This is set to `last-used' as per the documentation and will be the last used budget in an 'approved' app."
-  :group 'ynab
-  :type 'string)
-
 (defconst ynab--api-url "https://api.youneedabudget.com/v1/")
+(defconst last-used (ynab-budget--create
+                     :id "last-used"
+                     :name "Last Used"))
+
+(defvar ynab--chosen-budget last-used
+  "The budget that will be used when interacting with YNAB.")
 
 (cl-defstruct (ynab-transaction (:constructor ynab-transaction--create))
   "A YNAB transaction."
   id date payee category amount cleared)
+
+(cl-defstruct (ynab-budget (:constructor ynab-budget--create))
+  "A YNAB Budget."
+  id name)
+
+(defun ynab--fetch-budget-list ()
+  "Fetch and parse the users budget list."
+  (let ((url-request-extra-headers (list (cons "Authorization" (format "Bearer %s" ynab-personal-token))))
+        (json-object-type 'plist))
+    (message "Fetching budgets from YNAB")
+    (with-current-buffer
+        (url-retrieve-synchronously
+         (format "%s/budgets" ynab--api-url))
+      (let ((result (json-read-object)))
+        (cl-loop for budget across (plist-get (plist-get result :data) :budgets) collect
+                 (ynab-budget--create
+                  :id (plist-get budget :id)
+                  :name (plist-get budget :name)))))))
 
 (defun ynab--fetch-transactions-for-budget (budget &optional date)
   "Fetch the list of transactions for the specified BUDGET and optional DATE."
@@ -65,10 +82,10 @@ This is set to `last-used' as per the documentation and will be the last used bu
                         date
                         (ts-format "%Y-%m-%d" (ts-dec 'day 30 (ts-now)))))
         (json-object-type 'plist))
-    (message "Fetching transactions from YNAB")
+    (message "Fetching transactions from YNAB for budget::%s" (ynab-budget-name ynab--chosen-budget))
   (with-current-buffer
    (url-retrieve-synchronously
-    (format "%s/budgets/%s/transactions?since_date=%s" ynab--api-url budget date-since))
+    (format "%s/budgets/%s/transactions?since_date=%s" ynab--api-url (ynab-budget-id budget) date-since))
    (let ((result (json-read-object)))
      (message (format "Fetched %d transactions from YNAB" (length (plist-get (plist-get result :data) :transactions))))
      (cl-loop for transaction across (plist-get (plist-get result :data) :transactions) collect
@@ -84,6 +101,7 @@ This is set to `last-used' as per the documentation and will be the last used bu
 
 (progn
   (setq ynab-transactions-mode-map (make-sparse-keymap))
+  (define-key ynab-transactions-mode-map (kbd "C-c C-b") 'ynab-choose-budget)
   (define-key ynab-transactions-mode-map (kbd "C-c C-d") 'ynab-set-transaction-since-date))
 
 (define-derived-mode ynab-transactions-mode tabulated-list-mode "YNAB Transactions"
@@ -94,8 +112,8 @@ This is set to `last-used' as per the documentation and will be the last used bu
         [("Date" 15 t) ("Payee" 40 nil) ("Category" 40 nil) ("Amount" 15 nil) ("Cleared" 10 nil)]
         tabulated-list-sort-key (cons "Date" t)))
 
-(defun ynab--refresh-transaction-list (&optional date)
-  "Refresh the transactions, optionally setting the since DATE."
+(defun ynab--refresh-transaction-list (budget &optional date)
+  "Refresh the transactions for BUDGET, optionally setting the since DATE."
   (setq tabulated-list-entries
         (mapcar (lambda (transaction)
                   (list (ynab-transaction-id transaction)
@@ -105,17 +123,30 @@ This is set to `last-used' as per the documentation and will be the last used bu
                                 (format "$%.2f" (/ (ynab-transaction-amount transaction) 1000.00))
                                 (ynab-transaction-cleared transaction))))
                 (if date
-                    (ynab--fetch-transactions-for-budget ynab-default-budget date)
-                    (ynab--fetch-transactions-for-budget ynab-default-budget)))))
+                    (ynab--fetch-transactions-for-budget budget date)
+                    (ynab--fetch-transactions-for-budget budget)))))
 
 (defun ynab-set-transaction-since-date (date)
   "Set the DATE from which to pull transactions.
 
 When you first load ynab this is defaulted to 30 days ago.
 The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen date."
-  (interactive "sEnter the desired date: ")
-  (ynab--refresh-transaction-list date)
+  (interactive "sEnter the date: ")
+  (ynab--refresh-transaction-list ynab--chosen-budget date)
   (tabulated-list-print))
+
+(setq ynab--chosen-budget last-used)
+(defun ynab-choose-budget ()
+  "Interactively choose which budget to view."
+  (interactive)
+  (let* ((budgets (ynab--fetch-budget-list))
+         (budget-names (mapcar 'ynab-budget-name budgets))
+         (chosen (ido-completing-read "Choose budget to display: " budget-names)))
+    (setq ynab--chosen-budget (car (cl-loop for budget in budgets
+                                         if (string= (ynab-budget-name budget) chosen)
+                                         collect budget)))
+    (ynab--refresh-transaction-list ynab--chosen-budget)
+    (tabulated-list-print)))
 
 ;;;###autoload
 (defun ynab ()
@@ -124,10 +155,10 @@ The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen 
   (let ((buffer (get-buffer-create "*YNAB Transactions*")))
     (with-current-buffer buffer
       (ynab-transactions-mode)
-      (ynab--refresh-transaction-list)
+      (ynab--refresh-transaction-list ynab--chosen-budget)
       (tabulated-list-init-header)
       (tabulated-list-print))
-    (display-buffer buffer)
+    (switch-to-buffer buffer)
     nil))
 
 (provide 'ynab)
