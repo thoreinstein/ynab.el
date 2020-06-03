@@ -6,18 +6,14 @@
 
 (require 'cl-lib)
 
+(require 'ynab-cache)
+
 (defcustom ynab-personal-token ""
   "Your personal access token for YNAB."
   :group 'ynab
   :type 'string)
 
 (defconst ynab--api-url "https://api.youneedabudget.com/v1/")
-(defconst last-used (make-ynab-budget
-                     :id "last-used"
-                     :name "Last Used"))
-
-(defvar ynab--chosen-budget last-used
-  "The budget that will be used when interacting with YNAB.")
 
 ;;; data structures
 
@@ -25,35 +21,35 @@
   "A YNAB transaction."
   id date payee category amount cleared)
 
-(cl-defstruct ynab-budget
-  "A YNAB Budget."
-  id name)
+;; (cl-defstruct ynab-budget
+;;   "A YNAB Budget."
+;;   id name)
 
-(cl-defstruct ynab-payee
-  "A YNAB Payee."
-  id name deleted)
+;; (cl-defstruct ynab-payee
+;;   "A YNAB Payee."
+;;   id name deleted)
 
-(cl-defstruct ynab-category-group
-  "Top Level YNAB Category Group."
-  id name hidden deleted)
+;; (cl-defstruct ynab-category-group
+;;   "Top Level YNAB Category Group."
+;;   id name hidden deleted)
 
-(cl-defstruct ynab-category
-  "A YNAB Budget Category."
-  id
-  category_group_id
-  name
-  hidden
-  original_category_group_id
-  note
-  budgeted
-  activity
-  balance
-  goal_type
-  goal_creation_month
-  goal_target
-  goal_target_month
-  goal_percentage_complete
-  deleted)
+;; (cl-defstruct ynab-category
+;;   "A YNAB Budget Category."
+;;   id
+;;   category_group_id
+;;   name
+;;   hidden
+;;   original_category_group_id
+;;   note
+;;   budgeted
+;;   activity
+;;   balance
+;;   goal_type
+;;   goal_creation_month
+;;   goal_target
+;;   goal_target_month
+;;   goal_percentage_complete
+;;   deleted)
 
 ;;; data parsers
 
@@ -68,59 +64,46 @@
                    :amount (plist-get transaction :amount)
                    :cleared (plist-get transaction :cleared))))
 
-(defun ynab--parse-budgets (budgets)
-  "Parse BUDGETS from the YNAB API."
-  (cl-loop for budget across (plist-get (plist-get budgets :data) :budgets) collect
-           (make-ynab-budget
-            :id (plist-get budget :id)
-            :name (plist-get budget :name))))
+;; (defun ynab--parse-payees (payees)
+;;   "Parse PAYEES from the YNAB API."
+;;  (cl-loop for payee across (plist-get (plist-get payees :data) :payees) collect
+;;                  (make-ynab-payee
+;;                   :id (plist-get payee :id)
 
-(defun ynab--parse-payees (payees)
-  "Parse PAYEES from the YNAB API."
- (cl-loop for payee across (plist-get (plist-get payees :data) :payees) collect
-                 (make-ynab-payee
-                  :id (plist-get payee :id)
-                  :name (plist-get payee :name)
-                  :deleted (plist-get payee :deleted))))
+;;                   :name (plist-get payee :name)
+;;                   :deleted (plist-get payee :deleted))))
 
-(defun ynab--parse-categories (categories)
-  "Parse CATEGORIES from the YNAB API."
-(cl-loop for category across categories collect
-                          (make-ynab-category
-                           :id (plist-get category :id)
-                           :category_group_id (plist-get category :category_group_id)
-                           :name (plist-get category :name)
-                           :hidden (plist-get category :hidden)
-                           :original_category_group_id (plist-get category :original_category_group_id)
-                           :note (plist-get category :note)
-                           :budgeted (plist-get category :budgeted)
-                           :activity (plist-get category :activity)
-                           :balance (plist-get category :balance)
-                           :goal_type (plist-get category :goal_type)
-                           :goal_creation_month (plist-get category :goal_creation_month)
-                           :goal_target (plist-get category :goal_target)
-                           :goal_target_month (plist-get category :goal_target_month)
-                           :goal_percentage_complete (plist-get category :goal_percentage_complete)
-                           :deleted (plist-get category :deleted))))
+;; (defun ynab--parse-categories (categories)
+;;   "Parse CATEGORIES from the YNAB API."
+;; (cl-loop for category across categories collect
+;;                           (make-ynab-category
+;;                            :id (plist-get category :id)
+;;                            :category_group_id (plist-get category :category_group_id)
+;;                            :name (plist-get category :name)
+;;                            :hidden (plist-get category :hidden)
+;;                            :original_category_group_id (plist-get category :original_category_group_id)
+;;                            :note (plist-get category :note)
+;;                            :budgeted (plist-get category :budgeted)
+;;                            :activity (plist-get category :activity)
+;;                            :balance (plist-get category :balance)
+;;                            :goal_type (plist-get category :goal_type)
+;;                            :goal_creation_month (plist-get category :goal_creation_month)
+;;                            :goal_target (plist-get category :goal_target)
+;;                            :goal_target_month (plist-get category :goal_target_month)
+;;                            :goal_percentage_complete (plist-get category :goal_percentage_complete)
+;;                            :deleted (plist-get category :deleted))))
 
-(defun ynab--parse-category-groups (category-groups)
-  "Parse CATEGORY-GROUPS from the YNAB API."
-  (flatten (cl-loop for category-group across (plist-get (plist-get category-groups :data) :category_groups) do
-           (make-ynab-category-group
-            :id (plist-get category-group :id)
-            :name (plist-get category-group :name)
-            :hidden (plist-get category-group :hidden)
-            :deleted (plist-get category-group :deleted))
-           collect (ynab--parse-categories (plist-get category-group :categories)))))
+;; (defun ynab--parse-category-groups (category-groups)
+;;   "Parse CATEGORY-GROUPS from the YNAB API."
+;;   (flatten (cl-loop for category-group across (plist-get (plist-get category-groups :data) :category_groups) do
+;;            (make-ynab-category-group
+;;             :id (plist-get category-group :id)
+;;             :name (plist-get category-group :name)
+;;             :hidden (plist-get category-group :hidden)
+;;             :deleted (plist-get category-group :deleted))
+;;            collect (ynab--parse-categories (plist-get category-group :categories)))))
 
 ;;; data fetchers
-
-(defun ynab--fetch-budget-list ()
-  "Fetch and parse the users budget list."
-  (let* ((path "budgets")
-         (result (ynab--parse-budgets (ynab-api--make-request path))))
-    ;;; TODO Shove result into a caching mechanism to avoid making repeated API calls
-    result))
 
 (defun ynab--fetch-transactions-for-budget (budget &optional date)
   "Fetch the list of transactions for the specified BUDGET and optional DATE."
@@ -132,25 +115,23 @@
     ;;; TODO Shove result into a caching mechanism to avoid making repeated API calls
     result))
 
-(defun ynab--fetch-payee-list-for-budget (budget)
-  "Fetch and parse the payee list for the BUDGET."
-  (let* ((path (format "budgets/%s/payees" (ynab-budget-id budget)))
-         (result (ynab--parse-payees (ynab-api--make-request path))))
-    ;;; TODO Shove result into a caching mechanism to avoid making repeated API calls
-    result))
 
-(defun ynab--fetch-category-list-for-budget (budget)
-  "Fetch and parse the categorylist for BUDGET."
-  (let* ((path (format "budgets/%s/categories" (ynab-budget-id budget)))
-        (result (ynab--parse-category-groups (ynab-api--make-request path))))
-    ;;; TODO Shove result into a caching mechanism to avoid making repeated API calls
-    result))
+;; (defun ynab--fetch-payee-list-for-budget (budget)
+;;   "Fetch and parse the payee list for the BUDGET."
+;;   (let* ((path (format "budgets/%s/payees" (ynab-budget-id budget)))
+;;          (result (ynab--parse-payees (ynab-api--make-request path))))
+;;     ;;; TODO Shove result into a caching mechanism to avoid making repeated API calls
+;;     result))
 
-;;; DEBUG
-;; (ynab--fetch-transactions-for-budget last-used)
-;; (ynab--fetch-budget-list)
-;; (ynab--fetch-payee-list-for-budget last-used)
-;; (ynab--fetch-category-list-for-budget last-used)
+;; (defun ynab--fetch-category-list-for-budget (budget)
+;;   "Fetch and parse the categorylist for BUDGET."
+;;   (let* ((path (format "budgets/%s/categories" (ynab-budget-id budget)))
+;;         (result (ynab--parse-category-groups (ynab-api--make-request path))))
+;;     ;;; TODO Shove result into a caching mechanism to avoid making repeated API calls
+;;     result))
+
+;; (ynab-budget-id ynab--chosen-budget)
+;; (ynab--fetch-payee-list-for-budget ynab--chosen-budget)
 
 ;;; internals
 

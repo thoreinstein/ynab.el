@@ -36,13 +36,35 @@
 (require 'cl-lib)
 (require 'json)
 (require 'ts)
+(require 'pcache)
 
+(require 'ynab-budget)
 (require 'ynab-api)
 
 (defgroup ynab nil
   "Use YNAB from the comfort of Emacs."
   :group 'convenience)
 
+(defcustom ynab-skip-cache nil
+  "Skip caching YNAB data.
+
+Anything other than nil will skip saving data in the temporary cache.
+
+Useful for debugging or for the ultra paranoid.
+Will greatly increase the number of API calls made to YNAB,
+possibly bumping up against their rate limit of 200 requests per hour.
+See https://api.youneedabudget.com/#rate-limiting for details."
+  :group 'ynab
+  :type 'boolean)
+
+(defconst last-used (ynab-budget
+                     :id "last-used"
+                     :name "Last Used"))
+
+(defconst ynab--cache (pcache-repository "ynab"))
+
+(defvar ynab--chosen-budget last-used
+  "The budget that will be used when interacting with YNAB.")
 
 (defvar ynab-transactions-mode-map nil "Keymap for `ynab-transactions-mode'.")
 
@@ -85,13 +107,9 @@ The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen 
 (defun ynab-choose-budget ()
   "Interactively choose which budget to view."
   (interactive)
-  (let* ((budgets (ynab--fetch-budget-list))
-         (budget-names (mapcar 'ynab-budget-name budgets))
-         (chosen (ido-completing-read "Choose budget to display: " budget-names)))
-    (setq ynab--chosen-budget (car (cl-loop for budget in budgets
-                                         if (string= (ynab-budget-name budget) chosen)
-                                         collect budget)))
-    (ynab--refresh-transaction-list ynab--chosen-budget)
+  (let* ((chosen (ido-completing-read "Choose budget to display: " (ynab-budget-names-for-ido))))
+    (setq ynab--chosen-budget (ynab-budget--find-by-name chosen))
+    ;; (ynab--refresh-transaction-list ynab--chosen-budget)
     (tabulated-list-print)))
 
 (defun ynab-add-transaction ()
@@ -124,7 +142,7 @@ The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen 
   (let ((buffer (get-buffer-create "*YNAB Transactions*")))
     (with-current-buffer buffer
       (ynab-transactions-mode)
-      (ynab--refresh-transaction-list ynab--chosen-budget)
+      ;; (ynab--refresh-transaction-list ynab--chosen-budget)
       (tabulated-list-init-header)
       (tabulated-list-print))
     (switch-to-buffer buffer)
