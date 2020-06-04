@@ -67,12 +67,12 @@ See https://api.youneedabudget.com/#rate-limiting for details."
 (defvar ynab--chosen-budget last-used
   "The budget that will be used when interacting with YNAB.")
 
-;; (defvar ynab-transactions-mode-map nil "Keymap for `ynab-transactions-mode'.")
+(defvar ynab-transactions-mode-map nil "Keymap for `ynab-transactions-mode'.")
 
-;; (progn
-;;   (setq ynab-transactions-mode-map (make-sparse-keymap))
+(progn
+  (setq ynab-transactions-mode-map (make-sparse-keymap))
 ;;   (define-key ynab-transactions-mode-map (kbd "C-c C-b") 'ynab-choose-budget)
-;;   (define-key ynab-transactions-mode-map (kbd "C-c C-d") 'ynab-set-transaction-since-date))
+  (define-key ynab-transactions-mode-map (kbd "C-c C-d") 'ynab-set-transaction-since-date))
 
 (define-derived-mode ynab-transactions-mode tabulated-list-mode "YNAB Transactions"
   "Major mode for interacting with YNAB transactions."
@@ -86,14 +86,15 @@ See https://api.youneedabudget.com/#rate-limiting for details."
   "Refresh the transaction list and redraw the buffer."
   (setq tabulated-list-entries (ynab-transaction-list-for-view)))
 
-;; (defun ynab-set-transaction-since-date (date)
-;;   "Set the DATE from which to pull transactions.
+(defun ynab-set-transaction-since-date (date)
+  "Set the DATE from which to pull transactions.
 
-;; When you first load ynab this is defaulted to 30 days ago.
-;; The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen date."
-;;   (interactive "sEnter the date: ")
-;;   (ynab--refresh-transaction-list ynab--chosen-budget date)
-;;   (tabulated-list-print))
+When you first load ynab this is defaulted to 30 days ago.
+The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen date."
+  (interactive "sEnter the date: ")
+  (setq ynab--transaction-since-date)
+  (ynab--refresh-transaction-list ynab--chosen-budget date)
+  (tabulated-list-print))
 
 ;; (defun ynab-choose-budget ()
 ;;   "Interactively choose which budget to view."

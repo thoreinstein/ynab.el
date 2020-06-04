@@ -4,10 +4,6 @@
 ;;
 ;;; Code:
 
-(require 'cl-lib)
-
-(require 'ynab-cache)
-
 (defcustom ynab-personal-token ""
   "Your personal access token for YNAB."
   :group 'ynab

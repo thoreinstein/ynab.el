@@ -19,13 +19,6 @@
 ;;
 ;;; Code:
 
-(require 'pcache)
-
-(defun ynab--cache-budgets (budgets)
-  "Add BUDGETS to the cache."
-  (let ((repo (pcache-repository "ynab-budgets")))
-    (cl-loop for budget in budgets do
-             (pcache-put repo (ynab-budget-name budget) budget))))
 
 (provide 'ynab-cache)
 ;;; ynab-cache.el ends here
