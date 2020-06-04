@@ -17,10 +17,6 @@
 
 ;;; data structures
 
-(cl-defstruct ynab-transaction
-  "A YNAB transaction."
-  id date payee category amount cleared)
-
 ;; (cl-defstruct ynab-budget
 ;;   "A YNAB Budget."
 ;;   id name)
@@ -52,17 +48,6 @@
 ;;   deleted)
 
 ;;; data parsers
-
-(defun ynab--parse-transactions (transactions)
-  "Parse TRANSACTIONS from the YNAB API."
-    (cl-loop for transaction across (plist-get (plist-get transactions :data) :transactions) collect
-                  (make-ynab-transaction
-                   :id (plist-get transaction :id)
-                   :date (plist-get transaction :date)
-                   :payee (plist-get transaction :payee_name)
-                   :category (plist-get transaction :category_name)
-                   :amount (plist-get transaction :amount)
-                   :cleared (plist-get transaction :cleared))))
 
 ;; (defun ynab--parse-payees (payees)
 ;;   "Parse PAYEES from the YNAB API."
@@ -105,15 +90,6 @@
 
 ;;; data fetchers
 
-(defun ynab--fetch-transactions-for-budget (budget &optional date)
-  "Fetch the list of transactions for the specified BUDGET and optional DATE."
-  (let* ((date-since (if date
-                        date
-                        (ts-format "%Y-%m-%d" (ts-dec 'day 30 (ts-now)))))
-         (path (format "budgets/%s/transactions?since_date=%s" (ynab-budget-id budget) date-since))
-         (result (ynab--parse-transactions (ynab-api--make-request path))))
-    ;;; TODO Shove result into a caching mechanism to avoid making repeated API calls
-    result))
 
 
 ;; (defun ynab--fetch-payee-list-for-budget (budget)
