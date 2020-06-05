@@ -54,6 +54,8 @@ Anything other than nil will skip saving data in the temporary cache.
 Useful for debugging or for the ultra paranoid.
 Will greatly increase the number of API calls made to YNAB,
 possibly bumping up against their rate limit of 200 requests per hour.
+
+
 See https://api.youneedabudget.com/#rate-limiting for details."
   :group 'ynab
   :type 'boolean)
@@ -92,8 +94,8 @@ See https://api.youneedabudget.com/#rate-limiting for details."
 When you first load ynab this is defaulted to 30 days ago.
 The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen date."
   (interactive "sEnter the date: ")
-  (setq ynab--transaction-since-date)
-  (ynab--refresh-transaction-list ynab--chosen-budget date)
+  (setq ynab--transactions-date-since (ts-format "%Y-%m-%d" (ts-parse date)))
+  (ynab--refresh-transaction-list)
   (tabulated-list-print))
 
 ;; (defun ynab-choose-budget ()

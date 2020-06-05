@@ -59,8 +59,14 @@ instead of the cache and any existing cache invalidated."
         (pcache-purge-invalid ynab--cache)
         (ynab-transaction--fetch))
     (if (pcache-has ynab--cache (ynab-budget-id ynab--chosen-budget))
-        (pcache-get ynab--cache (ynab-budget-id ynab--chosen-budget))
-      (ynab-budget--fetch))))
+        (let* ((transactions (pcache-get ynab--cache (ynab-budget-id ynab--chosen-budget)))
+              (oldest (first transactions)))
+          (if (ts< (ts-parse ynab--transactions-date-since) (ts-parse (ynab-transaction-date oldest)))
+              (ynab-transaction--fetch)
+            (seq-filter (lambda (transaction)
+                          (ts>= (ts-parse (ynab-transaction-date transaction)) (ts-parse ynab--transactions-date-since)))
+                        transactions)))
+      )))
 
 (defun ynab-transaction-list-for-view ()
   "Format the list of transactions for view."
