@@ -46,11 +46,11 @@
   :type 'string)
 
 (defconst ynab--api-url "https://api.youneedabudget.com/v1/")
-(defconst last-used (ynab-budget--create
+(defconst ynab-last-used (ynab-budget--create
                      :id "last-used"
                      :name "Last Used"))
 
-(defvar ynab--chosen-budget last-used
+(defvar ynab--chosen-budget ynab-last-used
   "The budget that will be used when interacting with YNAB.")
 
 (cl-defstruct (ynab-transaction (:constructor ynab-transaction--create))
@@ -87,7 +87,7 @@
    (url-retrieve-synchronously
     (format "%s/budgets/%s/transactions?since_date=%s" ynab--api-url (ynab-budget-id budget) date-since))
    (let ((result (json-read-object)))
-     (message (format "Fetched %d transactions from YNAB" (length (plist-get (plist-get result :data) :transactions))))
+     (message "Fetched %d transactions from YNAB" (length (plist-get (plist-get result :data) :transactions)))
      (cl-loop for transaction across (plist-get (plist-get result :data) :transactions) collect
                   (ynab-transaction--create
                    :id (plist-get transaction :id)
@@ -139,7 +139,7 @@ The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen 
   "Interactively choose which budget to view."
   (interactive)
   (let* ((budgets (ynab--fetch-budget-list))
-         (budget-names (mapcar 'ynab-budget-name budgets))
+         (budget-names (mapcar #'ynab-budget-name budgets))
          (chosen (ido-completing-read "Choose budget to display: " budget-names)))
     (setq ynab--chosen-budget (car (cl-loop for budget in budgets
                                          if (string= (ynab-budget-name budget) chosen)
