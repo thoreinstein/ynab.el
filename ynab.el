@@ -81,7 +81,7 @@ See https://api.youneedabudget.com/#rate-limiting for details."
   :group 'ynab
   ;; (use-local-map ynab-transactions-mode-map)
   (setq tabulated-list-format
-        [("Date" 15 t) ("Payee" 40 nil) ("Category" 40 nil) ("Amount" 15 nil) ("Cleared" 10 nil)]
+        [("Date" 15 t) ("Payee" 30 nil) ("Category" 30 nil) ("Outflow" 15 nil) ("Inflow" 15 nil) ("Cleared" 10 nil)]
         tabulated-list-sort-key (cons "Date" t)))
 
 (defun ynab--refresh-transaction-list ()
@@ -128,6 +128,11 @@ The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen 
 ;;          ;;                   :category (find-category-by-name chosen-category)
 ;;          ;;                   :memo memo)
 ;;          )))
+
+;;;###autoload
+(defun ynab-kill-cache ()
+  "Wipe the cache."
+  (pcache-clear ynab--cache))
 
 ;;;###autoload
 (defun ynab ()

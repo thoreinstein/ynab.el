@@ -42,11 +42,6 @@
       (pcache-put ynab--cache 'budgets budgets))
     budgets))
 
-;;; DEBUG
-;; (ynab-budget-list t)
-;; (ynab-budget-names-for-ido)
-;; (ynab-budget--find-by-name "Test Budget")
-
 (provide 'ynab-budget)
 
 ;;; ynab-budget.el ends here
