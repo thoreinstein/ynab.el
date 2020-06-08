@@ -10,6 +10,8 @@
 
 (require 'ynab-api)
 
+(defconst ynab--account-cache (pcache-repository "ynab-accounts"))
+
 (cl-defstruct ynab-account
   id
   name
@@ -39,12 +41,33 @@
             :transfer-payee-id (plist-get account :transfer_payee_id)
             :deleted (plist-get account :deleted))))
 
+(defun ynab-account-list (&optional skip-cache)
+  "Return the list of accounts for the chosen budget.
+
+Accounts are returned from the cache unless SKIP-CACHE is passed
+in which case they are fetched directly from the server."
+  (if (or ynab-skip-cache skip-cache)
+      (ynab-account--fetch)
+    (if (pcache-has ynab--account-cache 'accounts)
+        (pcache-get ynab--account-cache 'accounts)
+      (ynab-account--fetch))))
+
+(defun ynab-account-names-for-ido ()
+  "Get a list of accounts for `ido' completion."
+  (let ((accounts (ynab-account-list)))
+    (mapcar #'ynab-account-name accounts)))
+
+(defun ynab-account-find-by-name (account-name)
+  "Return the account struct for ACCOUNT-NAME."
+  (let ((accounts (ynab-account-list)))
+    (cl-find-if (lambda (a) (string-equal (ynab-account-name a) account-name)) accounts)))
+
 (defun ynab-account--fetch ()
   "Fetch the list of YNAB accounts from the server."
   (let* ((path (format "budgets/%s/accounts" (ynab-budget-id ynab--chosen-budget)))
          (accounts (ynab--parse-accounts (ynab-api--make-request path))))
     (unless ynab-skip-cache
-      (pcache-put ynab--cache (format "%s-accounts" (ynab-budget-id ynab--chosen-budget)) accounts)
+      (pcache-put ynab--account-cache 'accounts accounts)
       accounts)))
 
 (provide 'ynab-account)

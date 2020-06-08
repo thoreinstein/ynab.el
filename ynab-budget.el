@@ -10,14 +10,16 @@
 
 (require 'ynab-api)
 
+(defconst ynab--budget-cache (pcache-repository "ynab-budgets"))
+
 (cl-defstruct ynab-budget id name)
 
 (defun ynab-budget-list (&optional skip-cache)
   "Return the list of budgets, either from the cache or the server if SKIP-CACHE is not nil."
   (if (or ynab-skip-cache skip-cache)
       (ynab-budget--fetch)
-    (if (pcache-has ynab--cache 'budgets)
-        (pcache-get ynab--cache 'budgets)
+    (if (pcache-has ynab--budget-cache 'budgets)
+        (pcache-get ynab--budget-cache 'budgets)
       (ynab-budget--fetch))))
 
 (defun ynab-budget-names-for-ido ()
@@ -39,7 +41,7 @@
                             :id (plist-get budget :id)
                             :name (plist-get budget :name)))))
     (unless ynab-skip-cache
-      (pcache-put ynab--cache 'budgets budgets))
+      (pcache-put ynab--budget-cache 'budgets budgets))
     budgets))
 
 (provide 'ynab-budget)
