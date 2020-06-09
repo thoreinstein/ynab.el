@@ -64,10 +64,10 @@ See https://api.youneedabudget.com/#rate-limiting for details."
                      :id "last-used"
                      :name "Last Used"))
 
-(defconst ynab--cache (pcache-repository "ynab"))
-
 (defvar ynab--chosen-budget last-used
   "The budget that will be used when interacting with YNAB.")
+
+(defvar ynab--cache (pcache-repository (ynab-budget-id ynab--chosen-budget)))
 
 (defvar ynab-transactions-mode-map nil "Keymap for `ynab-transactions-mode'.")
 
@@ -110,26 +110,15 @@ The date you choose will fetch transactions recorded _ON_ or _AFTER_ the chosen 
 (defun ynab-add-transaction ()
   "Add a new transaction to your last used YNAB budget."
   (interactive)
-  (let* (
-         ;; (payees (ynab--fetch-payee-list-for-budget ynab--chosen-budget))
-         ;; (categories (ynab--fetch-category-list-for-budget ynab--chosen-budget))
-         ;; (payee-names (mapcar 'ynab-payee-name payees))
-         ;; (category-names (mapcar 'ynab-category-name categories))
-         (chosen-account (ido-completing-read "Account: " (ynab-account-names-for-ido)))
+  (let* ((chosen-account (ido-completing-read "Account: " (ynab-account-names-for-ido)))
          (chosen-date (read-string "Date [YYYY-MM-DD]: "))
-         ;; (chosen-payee (ido-completing-read "Payee: " payee-names))
-         ;; (chosen-category (ido-completing-read "Category: " category-names))
-         (memo (read-string "Memo: "))
          (outflow (read-number "Outflow [enter 0 if Inflow]: "))
          (inflow (read-number "Inflow [enter 0 if Outflow]: "))
+         (memo (read-string "Memo: "))
 
-         ;;; TODO These active record type accessors `find-thing-by-slot' will need to be implemented
-         ;;; once caching is in place. In the mean time this is here to hold the intended interaction.
          (new-transaction (make-ynab-transaction
                            :account-name (ynab-account-name (ynab-account-find-by-name chosen-account))
                            :date chosen-date
-                           ;; :payee (find-payee-by-name chosen-payee)
-                           ;; :category (find-category-by-name chosen-category)
                            :amount (if outflow
                                        (- (* outflow 1000))
                                      (* inflow 1000))

@@ -10,8 +10,6 @@
 
 (require 'ynab-api)
 
-(defconst ynab--account-cache (pcache-repository "ynab-accounts"))
-
 (cl-defstruct ynab-account
   id
   name
@@ -48,8 +46,8 @@ Accounts are returned from the cache unless SKIP-CACHE is passed
 in which case they are fetched directly from the server."
   (if (or ynab-skip-cache skip-cache)
       (ynab-account--fetch)
-    (if (pcache-has ynab--account-cache 'accounts)
-        (pcache-get ynab--account-cache 'accounts)
+    (if (pcache-has ynab--cache 'accounts)
+        (pcache-get ynab--cache 'accounts)
       (ynab-account--fetch))))
 
 (defun ynab-account-names-for-ido ()
@@ -67,7 +65,7 @@ in which case they are fetched directly from the server."
   (let* ((path (format "budgets/%s/accounts" (ynab-budget-id ynab--chosen-budget)))
          (accounts (ynab--parse-accounts (ynab-api--make-request path))))
     (unless ynab-skip-cache
-      (pcache-put ynab--account-cache 'accounts accounts)
+      (pcache-put ynab--cache 'accounts accounts)
       accounts)))
 
 (provide 'ynab-account)
