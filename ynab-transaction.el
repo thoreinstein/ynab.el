@@ -11,11 +11,10 @@
 (require 'ynab-api)
 (require 'ynab-budget)
 (require 'ynab-util)
+(require 'ynab-log)
 
 (defvar ynab--transactions-date-since nil
   "The date which transactions will be fetched from.")
-
-(defconst ynab--transaction-cache (pcache-repository "ynab-transactions"))
 
 (cl-defstruct ynab-transaction
   "A YNAB transaction."
@@ -43,6 +42,7 @@
 
 (defun ynab--parse-transactions (transactions)
   "Parse TRANSACTIONS from the YNAB API."
+  (ynab-log 'debug "Parsing transactions from YNAB API")
   (cl-loop for transaction across (plist-get (plist-get transactions :data) :transactions) collect
            (make-ynab-transaction
             :id (plist-get transaction :id)
@@ -74,6 +74,7 @@ instead of the cache and any existing cache invalidated."
       (progn
         (pcache-invalidate ynab--transaction-cache (ynab-budget-id ynab--chosen-budget))
         (pcache-purge-invalid ynab--transaction-cache)
+        (ynab-log 'debug "Clearing YNAB transaction cache")
         (ynab-transaction--fetch))
     (if (pcache-has ynab--transaction-cache (ynab-budget-id ynab--chosen-budget))
         (let* ((transactions (pcache-get ynab--transaction-cache (ynab-budget-id ynab--chosen-budget)))
